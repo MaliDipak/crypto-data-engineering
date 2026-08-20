@@ -11,6 +11,6 @@ class CoinGeckoAPIConf:
 
 
 class AWSConf:
-    AWSProfileName = os.getenv("AWSProfileName")
+    AWS_PROFILE_NAME = os.getenv("AWS_PROFILE_NAME")
 
-    S3RawStorageBucketName = os.getenv("S3RawStorageBucketName")
+    S3_RAW_STORAGE_BUCKET_NAME = os.getenv("S3_RAW_STORAGE_BUCKET_NAME")

@@ -47,8 +47,8 @@ def main():
         client = CoinGeckoAPIClient()
 
         storage = S3Storage(
-            bucket_name=AWSConf.S3RawStorageBucketName,
-            profile_name=AWSConf.AWSProfileName,
+            bucket_name=AWSConf.S3_RAW_STORAGE_BUCKET_NAME,
+            profile_name=AWSConf.AWS_PROFILE_NAME,
         )
 
         logger.info("Starting market data ingestion")
