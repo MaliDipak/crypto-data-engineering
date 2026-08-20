@@ -1,10 +1,3 @@
-import sys
-from pathlib import Path
-
-# Add project root directory to sys.path
-sys.path.append(str(Path(__file__).resolve().parents[2]))
-
-
 import json
 import logging
 import os
@@ -44,7 +37,7 @@ def fetch_api_data():
     }
 
     headers = {
-        "x-cg-pro-api-key": API_KEY,
+        "x-cg-demo-api-key": API_KEY,
         "Accept": "application/json"
     }
 
