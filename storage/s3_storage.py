@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
@@ -114,3 +114,97 @@ class S3Storage:
             raise S3StorageError(
                 f"Failed to upload object to S3: {object_key}"
             ) from exc
+
+    def list_objects_for_hour(
+        self,
+        year: int,
+        month: int,
+        day: int,
+        hour: int,
+    ) -> list[dict[str, Any]]:
+        """List raw market objects stored for a specific UTC hour."""
+
+        prefix = (
+            f"{self.base_prefix}/"
+            f"year={year:04d}/"
+            f"month={month:02d}/"
+            f"day={day:02d}/"
+            f"hour={hour:02d}/"
+        )
+
+        try:
+            response = self.s3_client.list_objects_v2(
+                Bucket=self.bucket_name,
+                Prefix=prefix,
+            )
+
+            return response.get("Contents", [])
+
+        except (ClientError, BotoCoreError) as exc:
+            logger.exception(
+                "Failed to list S3 objects for prefix: %s",
+                prefix,
+            )
+            raise S3StorageError(f"Failed to list S3 objects: {prefix}") from exc
+
+    def get_latest_object_for_hour(
+        self,
+        year: int,
+        month: int,
+        day: int,
+        hour: int,
+    ) -> Optional[dict[str, Any]]:
+        """
+        Return the latest raw market JSON object for a specific UTC hour.
+        """
+
+        objects = self.list_objects_for_hour(
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+        )
+
+        if not objects:
+            logger.info(
+                "No raw objects found for %04d-%02d-%02d %02d:00 UTC",
+                year,
+                month,
+                day,
+                hour,
+            )
+            return None
+
+        latest_object = max(
+            objects,
+            key=lambda obj: obj["LastModified"],
+        )
+
+        logger.info(
+            "Latest raw object: s3://%s/%s",
+            self.bucket_name,
+            latest_object["Key"],
+        )
+
+        return latest_object
+
+    def get_json_object(self, object_key: str) -> Any:
+        """Download and deserialize a JSON object from S3."""
+
+        try:
+            response = self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=object_key,
+            )
+
+            body = response["Body"].read()
+
+            return json.loads(body)
+
+        except (ClientError, BotoCoreError, json.JSONDecodeError) as exc:
+            logger.exception(
+                "Failed to read JSON object: s3://%s/%s",
+                self.bucket_name,
+                object_key,
+            )
+            raise S3StorageError(f"Failed to read JSON object: {object_key}") from exc
